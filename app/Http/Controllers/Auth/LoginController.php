@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\LoginAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
@@ -40,23 +42,15 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request, LoginAction $action)
     {
-        $input = $request->all();
+        $result = $action->handle($request);
 
-        $this->validate($request, [
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        $result = is_string($result) 
+        ? redirect()->route('login')->with('error', $result)
+        : ($result ? redirect()->route('admin.home') : redirect()->route('home') ); 
 
-        if (auth()->attempt(array('email' => $input['email'], 'password' => $input['password']))) {
-            if (auth()->user()->admin == 'true') {
-                return redirect()->route('admin.home');
-            } else {
-                return redirect()->route('home');
-            }
-        } else {
-            return redirect()->route('login')->with('error', 'email or password is wrong');
-        }
+        return $result;
+
     }
 }
